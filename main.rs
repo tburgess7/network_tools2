@@ -124,6 +124,7 @@ async fn portscan(query: web::Query<HashMap<String, String>>) -> impl Responder 
         None => return HttpResponse::BadRequest().body("Missing target parameter"),
     };
 
+    // Block scanning for specific domains.
     if target == "burgess.services" || target == "www.burgess.services" {
         return HttpResponse::BadRequest().body("Scanning this domain is not allowed");
     }
@@ -136,6 +137,7 @@ async fn portscan(query: web::Query<HashMap<String, String>>) -> impl Responder 
         }
     }
 
+    // If target is a domain, resolve it.
     if !is_valid_ip(&target) && is_valid_domain(&target) {
         if let Some(resolved) = resolve_domain_to_ip(&target) {
             target = resolved;
@@ -148,25 +150,45 @@ async fn portscan(query: web::Query<HashMap<String, String>>) -> impl Responder 
         return HttpResponse::BadRequest().body("Scanning private IP ranges is not allowed");
     }
 
+    // Create a JSON response object.
     let mut resp = json!({ "target": target });
 
+    // If both port_start and port_end are provided.
     if let (Some(port_start), Some(port_end)) = (query.get("port_start"), query.get("port_end")) {
-        let start_port: i32 = port_start.parse().unwrap_or(0);
-        let end_port: i32 = port_end.parse().unwrap_or(0);
+        let start_port: i32 = match port_start.parse() {
+            Ok(n) => n,
+            Err(_) => return HttpResponse::BadRequest().body("Invalid port range values"),
+        };
+        let end_port: i32 = match port_end.parse() {
+            Ok(n) => n,
+            Err(_) => return HttpResponse::BadRequest().body("Invalid port range values"),
+        };
         if start_port < 1 || end_port > 65535 || start_port > end_port {
             return HttpResponse::BadRequest().body("Port range out of bounds or invalid");
         }
         let nmap_command = format!("nmap -p {}-{} {} -oX -", start_port, end_port, target);
         let nmap_output = exec(&nmap_command);
+        resp["scan_range"] = json!({ "start": start_port, "end": end_port });
+        resp["port"] = json!(format!("{}-{}", start_port, end_port));
         resp["nmap_output"] = json!(nmap_output);
         return HttpResponse::Ok().json(resp);
-    } else if let Some(port) = query.get("port") {
-        let port_num: i32 = port.parse().unwrap_or(0);
+    }
+    // Single port branch.
+    else if let Some(port) = query.get("port") {
+        let port_num: i32 = match port.parse() {
+            Ok(n) => n,
+            Err(_) => return HttpResponse::BadRequest().body("Invalid port value"),
+        };
         if port_num < 1 || port_num > 65535 {
             return HttpResponse::BadRequest().body("Port number out of range (1-65535)");
         }
         let nmap_command = format!("nmap -p {} {} -oX -", port_num, target);
         let nmap_output = exec(&nmap_command);
+        // Here we explicitly set the "port" field.
+        resp["port"] = json!(port_num);
+        // Optionally, parse nmap_output to determine if the port is open.
+        // For now, we set "open" to false as a placeholder.
+        resp["open"] = json!(false);
         resp["nmap_output"] = json!(nmap_output);
         return HttpResponse::Ok().json(resp);
     } else {
@@ -260,7 +282,7 @@ async fn main() -> std::io::Result<()> {
             .service(nslookup)
     })
     // Change this depending on your needs, ex. 0.0.0.0 will bind to all ips, and 127.0.0.1 will restrict access to the localhost
-    .bind(("127.0.0.1", 18085))?
+    .bind(("127.0.0.1", 18080))?
     .run()
     .await
 }
