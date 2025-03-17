@@ -11,7 +11,7 @@ rustc --version
 cargo --version
 
 4. Download the network tools github and extract
-
+git clone git@github.com:tburgess7/network_tools2.git
 
 5. Compile the project
 cargo build --release
