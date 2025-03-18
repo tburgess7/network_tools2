@@ -1,5 +1,3 @@
-``
-
 **Install Instructions**
 
 1. **Install Rust**  
