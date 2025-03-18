@@ -1,5 +1,6 @@
-```sh
-# Install Instructions
+``
+
+**Install Instructions**
 
 1. **Install Rust**  
    Follow the on-screen instructions—the installer will set up Rust, Cargo (Rust’s build tool), and rustup.
@@ -32,5 +33,4 @@
    cd network_tools2
    cargo build --release
    ```
-EOF
 ```
