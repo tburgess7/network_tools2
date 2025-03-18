@@ -1,7 +1,4 @@
-If you’re having trouble downloading a file directly, one workaround is to create the file locally using a single shell command. Copy and paste the command below into your terminal to create an `INSTALL.md` file with the instructions:
-
 ```sh
-cat << 'EOF' > INSTALL.md
 # Install Instructions
 
 1. **Install Rust**  
@@ -37,5 +34,3 @@ cat << 'EOF' > INSTALL.md
    ```
 EOF
 ```
-
-After running that command, you'll have an `INSTALL.md` file in your current directory containing the install instructions in Markdown format. You can then open, edit, or share the file as needed.
