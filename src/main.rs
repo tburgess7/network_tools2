@@ -403,7 +403,7 @@ async fn main() -> std::io::Result<()> {
             .service(whois)
             .service(nslookup)
     })
-    .bind(("127.0.0.1", 18080))?
+    .bind(("127.0.0.1", 18085))?
     .run()
     .await
 }
