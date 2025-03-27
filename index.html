@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Network Tools Web App</title>
+  <style>
+    body {
+      font-family: monospace, monospace;
+      background: #121212;
+      color: #f0f0f0;
+      padding: 20px;
+    }
+    .terminal {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 20px;
+      overflow-x: auto;
+      font-family: monospace;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: none;
+    }
+    input, select {
+      background: #2a2a2a;
+      color: #fff;
+    }
+    button {
+      background: #28a745;
+      color: #fff;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Network Tools</h1>
+    <form id="toolForm">
+      <label for="toolSelect">Select Tool:</label>
+      <select id="toolSelect">
+        <option value="ping">Ping</option>
+        <option value="traceroute">Traceroute</option>
+        <option value="whois">Whois</option>
+        <option value="nslookup">NSLookup</option>
+        <option value="portscan">Port Scan</option>
+      </select>
+
+      <label for="targetInput">Target (IPv4 or domain):</label>
+      <input type="text" id="targetInput" placeholder="e.g. google.com" required>
+
+      <div id="portFields" style="display: none;">
+        <label for="portInput">Single Port (optional):</label>
+        <input type="number" id="portInput" placeholder="e.g. 443">
+        <label>Or Port Range:</label>
+        <input type="number" id="portStartInput" placeholder="Start Port (e.g. 20)">
+        <input type="number" id="portEndInput" placeholder="End Port (e.g. 80)">
+      </div>
+
+      <button type="submit">Run Tool</button>
+    </form>
+
+    <div id="result" class="terminal">Results will appear here.</div>
+  </div>
+
+  <script>
+    const toolSelect = document.getElementById("toolSelect");
+    const portFields = document.getElementById("portFields");
+
+    toolSelect.addEventListener("change", function () {
+      portFields.style.display = (this.value === "portscan") ? "block" : "none";
+    });
+
+    document.getElementById("toolForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const tool = toolSelect.value;
+      const target = document.getElementById("targetInput").value.trim();
+      let url = "/api/" + tool + "?target=" + encodeURIComponent(target);
+
+      if (tool === "portscan") {
+        const port = document.getElementById("portInput").value.trim();
+        const portStart = document.getElementById("portStartInput").value.trim();
+        const portEnd = document.getElementById("portEndInput").value.trim();
+        if (portStart && portEnd) {
+          url += "&port_start=" + encodeURIComponent(portStart) + "&port_end=" + encodeURIComponent(portEnd);
+        } else if (port) {
+          url += "&port=" + encodeURIComponent(port);
+        }
+      }
+
+      document.getElementById("result").textContent = "Loading...";
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error("HTTP error " + response.status);
+          return response.json();
+        })
+        .then(data => {
+          let output = "";
+          if (tool === "portscan") {
+            if (data.overall_status === "unknown") {
+              output = "⚠️ Port scan result could not be parsed.\n\nRaw Output:\n" + data.nmap_raw;
+              if (data.parse_error) {
+                output += "\nParse Error: " + data.parse_error;
+              }
+            } else if (data.scan_range) {
+              output += `🔍 Port scan for target ${data.target} over range ${data.scan_range.start} to ${data.scan_range.end}:\n`;
+              output += `Overall status: ${data.overall_status.toUpperCase()}\n\n`;
+              output += "Open ranges:\n";
+              (data.open_ranges || []).forEach(range => {
+                output += `  ${range[0]} - ${range[1]}\n`;
+              });
+              output += "\nClosed ranges:\n";
+              (data.closed_ranges || []).forEach(range => {
+                output += `  ${range[0]} - ${range[1]}\n`;
+              });
+            } else {
+              const port = data.port ?? "unknown";
+              const status = data.overall_status ?? "unknown";
+              output += `Port scan for target ${data.target} on port ${port} is ${status.toUpperCase()}`;
+            }
+          } else {
+            output = data.result;
+          }
+          document.getElementById("result").innerHTML = output;
+        })
+        .catch(error => {
+          document.getElementById("result").textContent = "Error: " + error.message;
+          console.error("Error:", error);
+        });
+    });
+  </script>
+</body>
+</html>
