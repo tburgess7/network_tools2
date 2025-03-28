@@ -173,16 +173,10 @@ fn group_ranges(ports: &Vec<i32>) -> Vec<(i32, i32)> {
 /// Parses the raw XML by first extracting the <nmaprun> block.
 /// In this version, we do not clean the output.
 fn parse_nmap_xml(xml: &str) -> Option<NmapSummary> {
-    // Optionally comment out the debug prints.
-    // eprintln!("Raw XML:\n{}", xml);
-
     let extracted = extract_nmaprun(xml)?;
-    // eprintln!("Extracted XML:\n{}", extracted);
-
     let nmaprun: Result<NmapRun, _> = from_str(&extracted);
     match nmaprun {
         Ok(parsed) => {
-            // eprintln!("DEBUG: Host present = {}", parsed.host.is_some());
             let host = parsed.host.as_ref()?;
             let ports = host.ports.as_ref()?;
             let mut open_ports = vec![];
@@ -190,13 +184,10 @@ fn parse_nmap_xml(xml: &str) -> Option<NmapSummary> {
 
             for p in &ports.port {
                 let raw_state = p.state.state.trim();
-                // eprintln!("DEBUG: Port {}: raw state: '{}'", p.portid, raw_state);
                 if let Ok(port_num) = p.portid.parse::<i32>() {
                     if raw_state.eq_ignore_ascii_case("open") {
-                        // eprintln!("DEBUG: Port {} detected as open", port_num);
                         open_ports.push(port_num);
                     } else {
-                        // eprintln!("DEBUG: Port {} detected as closed", port_num);
                         closed_ports.push(port_num);
                     }
                 }
@@ -221,8 +212,8 @@ fn parse_nmap_xml(xml: &str) -> Option<NmapSummary> {
                 closed_ranges,
             })
         }
-        Err(_err) => {
-            eprintln!("ERROR: Failed to parse XML: {:?}", _err);
+        Err(err) => {
+            eprintln!("ERROR: Failed to parse XML: {:?}", err);
             None
         }
     }
@@ -316,6 +307,9 @@ async fn portscan(query: web::Query<HashMap<String, String>>) -> impl Responder 
             resp["overall_status"] = json!(summary.overall_status);
             resp["open_ranges"] = json!(summary.open_ranges);
             resp["closed_ranges"] = json!(summary.closed_ranges);
+        } else {
+            resp["overall_status"] = json!("unknown");
+            resp["parse_error"] = json!("Failed to parse nmap output");
         }
         return HttpResponse::Ok().json(resp);
     } else {
