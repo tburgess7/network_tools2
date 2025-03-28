@@ -102,7 +102,7 @@
       e.preventDefault();
       const tool = toolSelect.value;
       const target = document.getElementById("targetInput").value.trim();
-      let url = "/api/" + tool + "?target=" + encodeURIComponent(target);
+      let url = "/ntools2_api/" + tool + "?target=" + encodeURIComponent(target);
 
       if (tool === "portscan") {
         const port = document.getElementById("portInput").value.trim();
