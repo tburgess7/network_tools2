@@ -33,7 +33,7 @@
    ```
 6. **Install and configure NGINX**
    Add the following to your /etc/nginx/conf.d/default.conf
-   ``sh
+   ```sh
        # Reverse proxy for second API requests (secondary network tools on port 18085)
     location /ntools2_api/ {
         proxy_pass http://127.0.0.1:18085/;
