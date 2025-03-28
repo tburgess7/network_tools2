@@ -31,8 +31,7 @@
    cd network_tools2
    cargo build --release
    ```
-6. **Install and configure NGINX**
-   Add the following to your /etc/nginx/conf.d/default.conf
+6. **Install and configure NGINX, add the following to your /etc/nginx/conf.d/default.conf**
    ```sh
        # Reverse proxy for second API requests (secondary network tools on port 18085)
     location /ntools2_api/ {
